@@ -79,4 +79,12 @@ public class AppState {
         properties.setProperty("windowWidth", String.valueOf(width));
         properties.setProperty("windowHeight", String.valueOf(height));
     }
+
+    public String getSortMode() {
+        return properties.getProperty("sortMode", "TITLE");
+    }
+
+    public void setSortMode(String sortMode) {
+        properties.setProperty("sortMode", sortMode);
+    }
 }

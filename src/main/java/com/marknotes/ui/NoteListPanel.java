@@ -30,6 +30,16 @@ public class NoteListPanel extends JPanel {
     private Consumer<String> onBeforeGroupRename;
     private List<Note> allNotes;
 
+    public enum SortMode { TITLE, LAST_MODIFIED }
+    private SortMode sortMode = SortMode.TITLE;
+
+    public SortMode getSortMode() { return sortMode; }
+
+    public void setSortMode(SortMode mode) {
+        this.sortMode = mode;
+        refreshNotes();
+    }
+
     @FunctionalInterface
     public interface NoteMoveListener {
         void onNoteMoved(String oldPath, java.io.File newFile, String newGroup);
@@ -143,6 +153,12 @@ public class NoteListPanel extends JPanel {
     private void buildTree(List<Note> notes) {
         rootNode.removeAllChildren();
 
+        java.util.Comparator<Note> comparator = sortMode == SortMode.LAST_MODIFIED
+                ? java.util.Comparator.comparing(Note::getLastModified, java.util.Comparator.reverseOrder())
+                : java.util.Comparator.comparing(n -> n.getTitle().toLowerCase());
+
+        List<Note> sorted = notes.stream().sorted(comparator).toList();
+
         DefaultMutableTreeNode ungrouped = new DefaultMutableTreeNode("Ungrouped");
         java.util.Map<String, DefaultMutableTreeNode> groupNodes = new java.util.TreeMap<>();
 
@@ -150,7 +166,7 @@ public class NoteListPanel extends JPanel {
             groupNodes.put(group, new DefaultMutableTreeNode(group));
         }
 
-        for (Note note : notes) {
+        for (Note note : sorted) {
             String group = note.getGroup();
             if (group == null || group.isEmpty()) {
                 ungrouped.add(new DefaultMutableTreeNode(note));
@@ -335,6 +351,24 @@ public class NoteListPanel extends JPanel {
         JMenuItem newGroupItem = new JMenuItem("New Group");
         newGroupItem.addActionListener(ev -> createNewGroup());
         popup.add(newGroupItem);
+
+        popup.addSeparator();
+        JMenu sortMenu = new JMenu("Sort by");
+        ButtonGroup sortGroup = new ButtonGroup();
+
+        JRadioButtonMenuItem sortByTitle = new JRadioButtonMenuItem("Title");
+        sortByTitle.setSelected(sortMode == SortMode.TITLE);
+        sortByTitle.addActionListener(ev -> { sortMode = SortMode.TITLE; refreshNotes(); });
+        sortGroup.add(sortByTitle);
+        sortMenu.add(sortByTitle);
+
+        JRadioButtonMenuItem sortByDate = new JRadioButtonMenuItem("Last Modified");
+        sortByDate.setSelected(sortMode == SortMode.LAST_MODIFIED);
+        sortByDate.addActionListener(ev -> { sortMode = SortMode.LAST_MODIFIED; refreshNotes(); });
+        sortGroup.add(sortByDate);
+        sortMenu.add(sortByDate);
+
+        popup.add(sortMenu);
 
         popup.show(noteTree, e.getX(), e.getY());
     }

@@ -82,6 +82,7 @@ public class MainFrame extends JFrame {
         appState.setTheme(UIManager.getLookAndFeel().getClass().getName());
         appState.setOpenTabs(editorPanel.getOpenTabPaths());
         appState.setViewMode(editorPanel.getCurrentViewMode().name());
+        appState.setSortMode(noteListPanel.getSortMode().name());
         appState.setWindowBounds(getX(), getY(), getWidth(), getHeight());
         appState.save();
     }
@@ -112,6 +113,12 @@ public class MainFrame extends JFrame {
         String viewMode = appState.getViewMode();
         try {
             editorPanel.setViewMode(EditorPanel.ViewMode.valueOf(viewMode));
+        } catch (IllegalArgumentException e) {
+            // ignore invalid value
+        }
+
+        try {
+            noteListPanel.setSortMode(NoteListPanel.SortMode.valueOf(appState.getSortMode()));
         } catch (IllegalArgumentException e) {
             // ignore invalid value
         }
