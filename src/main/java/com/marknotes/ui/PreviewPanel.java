@@ -36,7 +36,7 @@ public class PreviewPanel extends JPanel {
                 padding: 2px 6px;
                 border-radius: 3px;
                 font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-                font-size: 85%;
+                font-size: 100%;
             }
             pre {
                 background-color: #f5f5f5;
@@ -44,7 +44,7 @@ public class PreviewPanel extends JPanel {
                 border-radius: 6px;
                 overflow-x: auto;
             }
-            pre code { padding: 0; background: none; }
+            pre code { padding: 0; background-color: #f5f5f5; font-size: inherit; }
             blockquote {
                 margin: 0;
                 padding: 0 16px;
@@ -80,7 +80,7 @@ public class PreviewPanel extends JPanel {
                 padding: 2px 6px;
                 border-radius: 3px;
                 font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-                font-size: 85%;
+                font-size: 100%;
             }
             pre {
                 background-color: #1e1e1e;
@@ -88,7 +88,7 @@ public class PreviewPanel extends JPanel {
                 border-radius: 6px;
                 overflow-x: auto;
             }
-            pre code { padding: 0; background: none; color: #ddd; }
+            pre code { padding: 0; background-color: #1e1e1e; color: #ddd; font-size: inherit; }
             blockquote {
                 margin: 0;
                 padding: 0 16px;
