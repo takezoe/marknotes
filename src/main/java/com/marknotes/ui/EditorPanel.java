@@ -377,6 +377,41 @@ public class EditorPanel extends JPanel {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
 
+        Action plainCopyAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                String selected = textArea.getSelectedText();
+                if (selected != null) {
+                    java.awt.datatransfer.Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clip.setContents(new java.awt.datatransfer.StringSelection(selected), null);
+                }
+            }
+        };
+        Action plainCutAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                String selected = textArea.getSelectedText();
+                if (selected != null) {
+                    java.awt.datatransfer.Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clip.setContents(new java.awt.datatransfer.StringSelection(selected), null);
+                    textArea.replaceSelection("");
+                }
+            }
+        };
+        textArea.getActionMap().put("copy", plainCopyAction);
+        textArea.getActionMap().put("cut", plainCutAction);
+        textArea.getActionMap().put(javax.swing.text.DefaultEditorKit.copyAction, plainCopyAction);
+        textArea.getActionMap().put(javax.swing.text.DefaultEditorKit.cutAction, plainCutAction);
+        textArea.getActionMap().put("copy-to-clipboard", plainCopyAction);
+        textArea.getActionMap().put("cut-to-clipboard", plainCutAction);
+
+        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        InputMap im = textArea.getInputMap(JComponent.WHEN_FOCUSED);
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, shortcut), "plain-copy");
+        im.put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_X, shortcut), "plain-cut");
+        textArea.getActionMap().put("plain-copy", plainCopyAction);
+        textArea.getActionMap().put("plain-cut", plainCutAction);
+
         String themePath = darkTheme
                 ? "/org/fife/ui/rsyntaxtextarea/themes/dark.xml"
                 : "/org/fife/ui/rsyntaxtextarea/themes/default.xml";
