@@ -40,7 +40,12 @@ public class MainFrame extends JFrame {
 
         editorPanel = new EditorPanel(storage);
         noteListPanel = new NoteListPanel(storage);
-        noteListPanel.setOnNoteSelected(editorPanel::openNote);
+        noteListPanel.setOnNoteSelected((note, query) -> {
+            editorPanel.openNote(note);
+            if (query != null && !query.isEmpty()) {
+                editorPanel.selectFirstMatch(query);
+            }
+        });
         noteListPanel.setOnNoteDeleted(editorPanel::closeNoteTab);
         noteListPanel.setOnNoteRenamed(editorPanel::renameNote);
         noteListPanel.setOnNoteMoved(editorPanel::handleNoteMove);

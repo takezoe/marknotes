@@ -206,6 +206,19 @@ public class EditorPanel extends JPanel {
         return ViewMode.EDITOR;
     }
 
+    public void selectFirstMatch(String query) {
+        int index = tabbedPane.getSelectedIndex();
+        if (index < 0 || index >= tabs.size()) return;
+        RSyntaxTextArea textArea = tabs.get(index).textArea;
+        String text = textArea.getText().toLowerCase();
+        int pos = text.indexOf(query.toLowerCase());
+        if (pos >= 0) {
+            textArea.setCaretPosition(pos);
+            textArea.moveCaretPosition(pos + query.length());
+            textArea.getCaret().setSelectionVisible(true);
+        }
+    }
+
     public void showFind() {
         int index = tabbedPane.getSelectedIndex();
         if (index >= 0 && index < tabs.size()) {

@@ -20,8 +20,9 @@ public class NoteListPanel extends JPanel {
     private final JTree noteTree;
     private final DefaultMutableTreeNode rootNode;
     private final DefaultTreeModel treeModel;
+    private final NoteTreeCellRenderer cellRenderer;
     private final JTextField searchField;
-    private Consumer<Note> onNoteSelected;
+    private java.util.function.BiConsumer<Note, String> onNoteSelected;
     private Consumer<Note> onNoteDeleted;
     private java.util.function.BiConsumer<Note, String> onNoteRenamed;
     private NoteMoveListener onNoteMoved;
@@ -77,7 +78,9 @@ public class NoteListPanel extends JPanel {
         noteTree = new JTree(treeModel);
         noteTree.setRootVisible(false);
         noteTree.setShowsRootHandles(true);
-        noteTree.setCellRenderer(new NoteTreeCellRenderer());
+        noteTree.setRowHeight(0);
+        cellRenderer = new NoteTreeCellRenderer();
+        noteTree.setCellRenderer(cellRenderer);
         noteTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -86,7 +89,7 @@ public class NoteListPanel extends JPanel {
                     if (path != null) {
                         DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                         if (node.getUserObject() instanceof Note note && onNoteSelected != null) {
-                            onNoteSelected.accept(note);
+                            onNoteSelected.accept(note, searchField.getText().trim());
                         }
                     }
                 }
@@ -108,7 +111,7 @@ public class NoteListPanel extends JPanel {
         refreshNotes();
     }
 
-    public void setOnNoteSelected(Consumer<Note> listener) {
+    public void setOnNoteSelected(java.util.function.BiConsumer<Note, String> listener) {
         this.onNoteSelected = listener;
     }
 
@@ -175,6 +178,7 @@ public class NoteListPanel extends JPanel {
 
     private void filterNotes() {
         String query = searchField.getText().trim().toLowerCase();
+        cellRenderer.setHighlightQuery(query);
         if (query.isEmpty()) {
             buildTree(allNotes);
             return;
@@ -203,7 +207,7 @@ public class NoteListPanel extends JPanel {
         Note note = storage.createNote(title.trim(), group);
         refreshNotes();
         if (onNoteSelected != null) {
-            onNoteSelected.accept(note);
+            onNoteSelected.accept(note, "");
         }
     }
 
@@ -214,7 +218,7 @@ public class NoteListPanel extends JPanel {
         Note note = storage.createNote(title.trim(), group);
         refreshNotes();
         if (onNoteSelected != null) {
-            onNoteSelected.accept(note);
+            onNoteSelected.accept(note, "");
         }
     }
 
@@ -336,18 +340,76 @@ public class NoteListPanel extends JPanel {
     }
 
     private static class NoteTreeCellRenderer extends DefaultTreeCellRenderer {
+        private static final int SNIPPET_CONTEXT = 20;
+        private String highlightQuery = "";
+
+        void setHighlightQuery(String query) {
+            this.highlightQuery = query == null ? "" : query.trim().toLowerCase();
+        }
+
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
                                                       boolean expanded, boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
             if (node.getUserObject() instanceof Note note) {
-                setText(note.getTitle());
+                if (highlightQuery.isEmpty()) {
+                    setText(note.getTitle());
+                } else {
+                    setText(buildHighlightedLabel(note));
+                }
                 setIcon(UIManager.getIcon("FileView.fileIcon"));
             } else if (!node.isRoot() && node.getUserObject() instanceof String) {
                 setIcon(UIManager.getIcon("FileView.directoryIcon"));
             }
             return this;
+        }
+
+        private String buildHighlightedLabel(Note note) {
+            String title = note.getTitle();
+            int titleIdx = title.toLowerCase().indexOf(highlightQuery);
+
+            if (titleIdx >= 0) {
+                return highlightText(title, titleIdx);
+            }
+
+            String content = note.getContent();
+            int contentIdx = content.toLowerCase().indexOf(highlightQuery);
+            if (contentIdx >= 0) {
+                String snippet = buildSnippet(content, contentIdx);
+                return "<html>" + escapeHtml(title)
+                        + "<br><span style='color:gray;'>" + snippet + "</span></html>";
+            }
+
+            return title;
+        }
+
+        private String buildSnippet(String content, int matchIdx) {
+            int start = Math.max(0, matchIdx - SNIPPET_CONTEXT);
+            int end = Math.min(content.length(), matchIdx + highlightQuery.length() + SNIPPET_CONTEXT);
+
+            String raw = content.substring(start, end).replace('\n', ' ').replace('\r', ' ');
+            int localIdx = matchIdx - start;
+
+            String before = escapeHtml(raw.substring(0, localIdx));
+            String match = escapeHtml(raw.substring(localIdx, localIdx + highlightQuery.length()));
+            String after = escapeHtml(raw.substring(localIdx + highlightQuery.length()));
+
+            String prefix = start > 0 ? "..." : "";
+            String suffix = end < content.length() ? "..." : "";
+
+            return prefix + before + "<b style='background-color:#FFDD57; color:#333;'>" + match + "</b>" + after + suffix;
+        }
+
+        private String highlightText(String text, int idx) {
+            String before = escapeHtml(text.substring(0, idx));
+            String match = escapeHtml(text.substring(idx, idx + highlightQuery.length()));
+            String after = escapeHtml(text.substring(idx + highlightQuery.length()));
+            return "<html>" + before + "<b style='background-color:#FFDD57; color:#333;'>" + match + "</b>" + after + "</html>";
+        }
+
+        private static String escapeHtml(String s) {
+            return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
         }
     }
 
