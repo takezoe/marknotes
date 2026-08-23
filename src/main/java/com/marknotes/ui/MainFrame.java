@@ -94,6 +94,8 @@ public class MainFrame extends JFrame {
             switchTheme(theme);
         }
 
+        editorPanel.setFontSize(appState.getFontSize());
+
         List<String> tabPaths = appState.getOpenTabs();
         for (String path : tabPaths) {
             File file = new File(path);
@@ -197,11 +199,31 @@ public class MainFrame extends JFrame {
                 shortcutMask | java.awt.event.InputEvent.SHIFT_DOWN_MASK));
         cycleItem.addActionListener(e -> editorPanel.cycleViewMode());
 
+        JMenuItem fontSizeUpItem = new JMenuItem("Increase Font Size");
+        fontSizeUpItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_EQUALS, shortcutMask));
+        fontSizeUpItem.addActionListener(e -> changeFontSize(2));
+
+        JMenuItem fontSizeDownItem = new JMenuItem("Decrease Font Size");
+        fontSizeDownItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_MINUS, shortcutMask));
+        fontSizeDownItem.addActionListener(e -> changeFontSize(-2));
+
+        JMenuItem fontSizeResetItem = new JMenuItem("Reset Font Size");
+        fontSizeResetItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_0, shortcutMask));
+        fontSizeResetItem.addActionListener(e -> {
+            editorPanel.setFontSize(12);
+            appState.setFontSize(12);
+            appState.save();
+        });
+
         viewMenu.add(editorOnlyItem);
         viewMenu.add(splitItem);
         viewMenu.add(previewOnlyItem);
         viewMenu.addSeparator();
         viewMenu.add(cycleItem);
+        viewMenu.addSeparator();
+        viewMenu.add(fontSizeUpItem);
+        viewMenu.add(fontSizeDownItem);
+        viewMenu.add(fontSizeResetItem);
         viewMenu.addSeparator();
         viewMenu.add(createThemeMenu());
 
@@ -255,6 +277,13 @@ public class MainFrame extends JFrame {
                 radio.setSelected(lafClassName.equals(radio.getActionCommand()));
             }
         }
+    }
+
+    private void changeFontSize(int delta) {
+        int newSize = Math.max(8, Math.min(32, editorPanel.getFontSize() + delta));
+        editorPanel.setFontSize(newSize);
+        appState.setFontSize(newSize);
+        appState.save();
     }
 
     private void switchTheme(String lafClassName) {

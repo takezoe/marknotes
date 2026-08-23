@@ -16,12 +16,13 @@ public class PreviewPanel extends JPanel {
     private final Parser parser;
     private final HtmlRenderer renderer;
     private boolean dark = false;
+    private int fontSize = 12;
     private String lastMarkdown = "";
 
     private static final String LIGHT_CSS = """
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                font-size: 10px;
+                font-size: %dpx;
                 line-height: 1.6;
                 padding: 16px;
                 color: #333;
@@ -36,7 +37,7 @@ public class PreviewPanel extends JPanel {
                 padding: 2px 6px;
                 border-radius: 3px;
                 font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-                font-size: 100%;
+                font-size: 100%%;
             }
             pre {
                 background-color: #f5f5f5;
@@ -51,10 +52,10 @@ public class PreviewPanel extends JPanel {
                 color: #666;
                 border-left: 4px solid #ddd;
             }
-            table { border-collapse: collapse; width: 100%; }
+            table { border-collapse: collapse; width: 100%%; }
             th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
             th { background-color: #f5f5f5; font-weight: 600; }
-            img { max-width: 100%; }
+            img { max-width: 100%%; }
             a { color: #0366d6; }
             hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
             ul, ol { padding-left: 2em; }
@@ -64,7 +65,7 @@ public class PreviewPanel extends JPanel {
     private static final String DARK_CSS = """
             body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                font-size: 10px;
+                font-size: %dpx;
                 line-height: 1.6;
                 padding: 16px;
                 color: #ddd;
@@ -80,7 +81,7 @@ public class PreviewPanel extends JPanel {
                 padding: 2px 6px;
                 border-radius: 3px;
                 font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-                font-size: 100%;
+                font-size: 100%%;
             }
             pre {
                 background-color: #1e1e1e;
@@ -95,10 +96,10 @@ public class PreviewPanel extends JPanel {
                 color: #aaa;
                 border-left: 4px solid #555;
             }
-            table { border-collapse: collapse; width: 100%; }
+            table { border-collapse: collapse; width: 100%%; }
             th, td { border: 1px solid #555; padding: 8px 12px; text-align: left; }
             th { background-color: #3c3c3c; font-weight: 600; }
-            img { max-width: 100%; }
+            img { max-width: 100%%; }
             a { color: #6baaec; }
             hr { border: none; border-top: 1px solid #444; margin: 24px 0; }
             ul, ol { padding-left: 2em; }
@@ -131,13 +132,20 @@ public class PreviewPanel extends JPanel {
         }
     }
 
+    public void setFontSize(int size) {
+        this.fontSize = size;
+        if (!lastMarkdown.isEmpty()) {
+            updatePreview(lastMarkdown);
+        }
+    }
+
     public void updatePreview(String markdown) {
         lastMarkdown = markdown;
         if (markdown == null || markdown.isEmpty()) {
             htmlPane.setText("");
             return;
         }
-        String css = dark ? DARK_CSS : LIGHT_CSS;
+        String css = String.format(dark ? DARK_CSS : LIGHT_CSS, fontSize);
         String html = renderer.render(parser.parse(markdown));
         String fullHtml = "<html><head><style>" + css + "</style></head><body>" + html + "</body></html>";
         htmlPane.setText(fullHtml);

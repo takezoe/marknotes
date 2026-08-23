@@ -23,6 +23,7 @@ public class EditorPanel extends JPanel {
     private final List<TabInfo> tabs = new ArrayList<>();
     private final JLabel placeholderLabel;
     private boolean darkTheme = false;
+    private int fontSize = 12;
 
     public EditorPanel(NoteStorage storage) {
         this.storage = storage;
@@ -64,6 +65,7 @@ public class EditorPanel extends JPanel {
 
         PreviewPanel previewPanel = new PreviewPanel();
         previewPanel.setDark(darkTheme);
+        previewPanel.setFontSize(fontSize - 2);
 
         JPanel editorPane = new JPanel(new BorderLayout());
         editorPane.add(scrollPane, BorderLayout.CENTER);
@@ -427,6 +429,18 @@ public class EditorPanel extends JPanel {
         return textArea;
     }
 
+    public void setFontSize(int size) {
+        this.fontSize = size;
+        for (TabInfo tab : tabs) {
+            applyEditorFont(tab.textArea);
+            tab.previewPanel.setFontSize(size - 2);
+        }
+    }
+
+    public int getFontSize() {
+        return fontSize;
+    }
+
     public void reapplyFont() {
         for (TabInfo tab : tabs) {
             applyEditorFont(tab.textArea);
@@ -434,7 +448,7 @@ public class EditorPanel extends JPanel {
     }
 
     private void applyEditorFont(RSyntaxTextArea textArea) {
-        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, fontSize));
     }
 
     private void registerFindReplaceKeys(RSyntaxTextArea textArea, FindReplaceBar bar) {

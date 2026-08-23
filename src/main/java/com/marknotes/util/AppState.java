@@ -87,4 +87,12 @@ public class AppState {
     public void setSortMode(String sortMode) {
         properties.setProperty("sortMode", sortMode);
     }
+
+    public int getFontSize() {
+        return Integer.parseInt(properties.getProperty("fontSize", "12"));
+    }
+
+    public void setFontSize(int size) {
+        properties.setProperty("fontSize", String.valueOf(size));
+    }
 }
