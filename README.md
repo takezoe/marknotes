@@ -4,6 +4,8 @@ A lightweight Markdown notes editor built with Java Swing.
 
 Notes are stored as plain Markdown files with YAML front matter, making them easy to version control, sync, and edit with other tools.
 
+![MarkNotes screenshot](marknotes.png)
+
 ## Requirements
 
 - Java 17 or later
@@ -62,4 +64,3 @@ Application state is saved to `.marknotes` in the notes directory and restored o
 - [RSyntaxTextArea](https://github.com/bobbylight/RSyntaxTextArea) - Syntax highlighting
 - [commonmark-java](https://github.com/commonmark/commonmark-java) - Markdown to HTML rendering (with GFM tables, strikethrough, task lists)
 - [FlatLaf](https://github.com/JFormDesigner/FlatLaf) - Modern Look and Feel themes
-
