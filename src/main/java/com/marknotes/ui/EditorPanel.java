@@ -24,6 +24,7 @@ public class EditorPanel extends JPanel {
     private final JLabel placeholderLabel;
     private boolean darkTheme = false;
     private int fontSize = 12;
+    private boolean lineWrap = true;
 
     public EditorPanel(NoteStorage storage) {
         this.storage = storage;
@@ -376,7 +377,7 @@ public class EditorPanel extends JPanel {
         textArea.setCodeFoldingEnabled(true);
         textArea.setAntiAliasingEnabled(true);
         textArea.setTabSize(4);
-        textArea.setLineWrap(true);
+        textArea.setLineWrap(lineWrap);
         textArea.setWrapStyleWord(true);
 
         Action plainCopyAction = new AbstractAction() {
@@ -439,6 +440,17 @@ public class EditorPanel extends JPanel {
 
     public int getFontSize() {
         return fontSize;
+    }
+
+    public void setLineWrap(boolean wrap) {
+        this.lineWrap = wrap;
+        for (TabInfo tab : tabs) {
+            tab.textArea.setLineWrap(wrap);
+        }
+    }
+
+    public boolean getLineWrap() {
+        return lineWrap;
     }
 
     public void reapplyFont() {

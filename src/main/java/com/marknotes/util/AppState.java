@@ -88,6 +88,14 @@ public class AppState {
         properties.setProperty("sortMode", sortMode);
     }
 
+    public boolean getLineWrap() {
+        return Boolean.parseBoolean(properties.getProperty("lineWrap", "true"));
+    }
+
+    public void setLineWrap(boolean wrap) {
+        properties.setProperty("lineWrap", String.valueOf(wrap));
+    }
+
     public int getFontSize() {
         return Integer.parseInt(properties.getProperty("fontSize", "12"));
     }

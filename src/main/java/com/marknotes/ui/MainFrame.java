@@ -95,6 +95,7 @@ public class MainFrame extends JFrame {
         }
 
         editorPanel.setFontSize(appState.getFontSize());
+        editorPanel.setLineWrap(appState.getLineWrap());
 
         List<String> tabPaths = appState.getOpenTabs();
         for (String path : tabPaths) {
@@ -221,9 +222,20 @@ public class MainFrame extends JFrame {
         viewMenu.addSeparator();
         viewMenu.add(cycleItem);
         viewMenu.addSeparator();
+        JCheckBoxMenuItem lineWrapItem = new JCheckBoxMenuItem("Line Wrap");
+        lineWrapItem.setSelected(editorPanel.getLineWrap());
+        lineWrapItem.addActionListener(e -> {
+            boolean wrap = lineWrapItem.isSelected();
+            editorPanel.setLineWrap(wrap);
+            appState.setLineWrap(wrap);
+            appState.save();
+        });
+
         viewMenu.add(fontSizeUpItem);
         viewMenu.add(fontSizeDownItem);
         viewMenu.add(fontSizeResetItem);
+        viewMenu.addSeparator();
+        viewMenu.add(lineWrapItem);
         viewMenu.addSeparator();
         viewMenu.add(createThemeMenu());
 
