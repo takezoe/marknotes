@@ -289,6 +289,7 @@ public class EditorPanel extends JPanel {
             Theme theme = Theme.load(getClass().getResourceAsStream(themePath));
             for (TabInfo tab : tabs) {
                 theme.apply(tab.textArea);
+                applyEditorFont(tab.textArea);
                 tab.previewPanel.setDark(dark);
             }
         } catch (IOException e) {
@@ -373,7 +374,6 @@ public class EditorPanel extends JPanel {
         textArea.setCodeFoldingEnabled(true);
         textArea.setAntiAliasingEnabled(true);
         textArea.setTabSize(4);
-        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
 
@@ -422,7 +422,19 @@ public class EditorPanel extends JPanel {
             // Use default theme
         }
 
+        applyEditorFont(textArea);
+
         return textArea;
+    }
+
+    public void reapplyFont() {
+        for (TabInfo tab : tabs) {
+            applyEditorFont(tab.textArea);
+        }
+    }
+
+    private void applyEditorFont(RSyntaxTextArea textArea) {
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
     }
 
     private void registerFindReplaceKeys(RSyntaxTextArea textArea, FindReplaceBar bar) {

@@ -76,6 +76,7 @@ public class MainFrame extends JFrame {
 
     public void refreshUI() {
         SwingUtilities.updateComponentTreeUI(this);
+        editorPanel.reapplyFont();
     }
 
     private void saveState() {
@@ -122,6 +123,7 @@ public class MainFrame extends JFrame {
         } catch (IllegalArgumentException e) {
             // ignore invalid value
         }
+
     }
 
     private void setupMenuBar() {
