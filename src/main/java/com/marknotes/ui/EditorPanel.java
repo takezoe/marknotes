@@ -25,6 +25,7 @@ public class EditorPanel extends JPanel {
     private boolean darkTheme = false;
     private int fontSize = 12;
     private boolean lineWrap = true;
+    private int dragSourceIndex = -1;
 
     public EditorPanel(NoteStorage storage) {
         this.storage = storage;
@@ -37,6 +38,7 @@ public class EditorPanel extends JPanel {
 
         tabbedPane = new JTabbedPane();
         tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        setupTabDragAndDrop();
         add(tabbedPane, "tabs");
 
         showCard("placeholder");
@@ -479,6 +481,43 @@ public class EditorPanel extends JPanel {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) { bar.showFindReplace(); }
         });
+    }
+
+    private void setupTabDragAndDrop() {
+        tabbedPane.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (dragSourceIndex < 0) return;
+                int targetIndex = tabbedPane.indexAtLocation(e.getX(), e.getY());
+                if (targetIndex >= 0 && targetIndex != dragSourceIndex) {
+                    moveTab(dragSourceIndex, targetIndex);
+                    dragSourceIndex = targetIndex;
+                }
+            }
+        });
+        tabbedPane.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                dragSourceIndex = tabbedPane.indexAtLocation(e.getX(), e.getY());
+            }
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                dragSourceIndex = -1;
+            }
+        });
+    }
+
+    private void moveTab(int fromIndex, int toIndex) {
+        Component comp = tabbedPane.getComponentAt(fromIndex);
+        Component tabComp = tabbedPane.getTabComponentAt(fromIndex);
+        String title = tabbedPane.getTitleAt(fromIndex);
+        tabbedPane.removeTabAt(fromIndex);
+        tabbedPane.insertTab(title, null, comp, null, toIndex);
+        tabbedPane.setTabComponentAt(toIndex, tabComp);
+        tabbedPane.setSelectedIndex(toIndex);
+
+        TabInfo tabInfo = tabs.remove(fromIndex);
+        tabs.add(toIndex, tabInfo);
     }
 
     private void showCard(String name) {
