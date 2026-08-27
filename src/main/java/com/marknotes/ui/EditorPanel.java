@@ -2,9 +2,7 @@ package com.marknotes.ui;
 
 import com.marknotes.model.Note;
 import com.marknotes.util.NoteStorage;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rsyntaxtextarea.*;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 import javax.swing.*;
@@ -294,6 +292,7 @@ public class EditorPanel extends JPanel {
             Theme theme = Theme.load(getClass().getResourceAsStream(themePath));
             for (TabInfo tab : tabs) {
                 theme.apply(tab.textArea);
+                applyUrlTokenStyle(tab.textArea, dark);
                 applyEditorFont(tab.textArea);
                 tab.previewPanel.setDark(dark);
             }
@@ -373,9 +372,16 @@ public class EditorPanel extends JPanel {
         }
     }
 
+    private static final String MARKDOWN_URL_SYNTAX = "text/markdown-url";
+
+    static {
+        AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+        atmf.putMapping(MARKDOWN_URL_SYNTAX, MarkdownUrlTokenMaker.class.getName());
+    }
+
     private RSyntaxTextArea createTextArea() {
         RSyntaxTextArea textArea = new RSyntaxTextArea();
-        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_MARKDOWN);
+        textArea.setSyntaxEditingStyle(MARKDOWN_URL_SYNTAX);
         textArea.setCodeFoldingEnabled(true);
         textArea.setAntiAliasingEnabled(true);
         textArea.setTabSize(4);
@@ -427,7 +433,11 @@ public class EditorPanel extends JPanel {
             // Use default theme
         }
 
+        applyUrlTokenStyle(textArea, darkTheme);
         applyEditorFont(textArea);
+
+        textArea.setHyperlinksEnabled(true);
+        textArea.setLinkGenerator(new UrlLinkGenerator());
 
         return textArea;
     }
@@ -458,6 +468,41 @@ public class EditorPanel extends JPanel {
     public void reapplyFont() {
         for (TabInfo tab : tabs) {
             applyEditorFont(tab.textArea);
+        }
+    }
+
+    private void applyUrlTokenStyle(RSyntaxTextArea textArea, boolean dark) {
+        SyntaxScheme scheme = textArea.getSyntaxScheme();
+        Color urlColor = dark ? new Color(0x6A9FD6) : new Color(0x0366D6);
+        Style urlStyle = new Style(urlColor, null, null, true);
+        scheme.setStyle(MarkdownUrlTokenMaker.URL_TOKEN_TYPE, urlStyle);
+    }
+
+    private static class UrlLinkGenerator implements LinkGenerator {
+        @Override
+        public LinkGeneratorResult isLinkAtOffset(RSyntaxTextArea textArea, int offs) {
+            Token token = textArea.modelToToken(offs);
+            if (token != null && token.getType() == MarkdownUrlTokenMaker.URL_TOKEN_TYPE) {
+                String url = token.getLexeme();
+                int startOffset = token.getOffset();
+                return new LinkGeneratorResult() {
+                    @Override
+                    public javax.swing.event.HyperlinkEvent execute() {
+                        String resolved = url.startsWith("www.") ? "https://" + url : url;
+                        try {
+                            Desktop.getDesktop().browse(java.net.URI.create(resolved));
+                        } catch (Exception ignored) {
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    public int getSourceOffset() {
+                        return startOffset;
+                    }
+                };
+            }
+            return null;
         }
     }
 
