@@ -28,7 +28,7 @@ public class PreviewPanel extends JPanel {
                 color: #333;
                 background-color: #ffffff;
             }
-            h1, h2, h3, h4, h5, h6 { margin-top: 12px; margin-bottom: 8px; font-weight: 600; }
+            h1, h2, h3, h4, h5, h6 { margin-top: 12px; margin-bottom: 8px; font-weight: 600; color: #111; }
             h1 { font-size: 1.6em; }
             h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
             h3 { font-size: 1.25em; }
