@@ -1,6 +1,7 @@
 package com.marknotes.ui;
 
 import org.commonmark.Extension;
+import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.task.list.items.TaskListItemsExtension;
@@ -9,6 +10,7 @@ import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.Desktop;
 import java.util.List;
 
 public class PreviewPanel extends JPanel {
@@ -112,7 +114,8 @@ public class PreviewPanel extends JPanel {
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 StrikethroughExtension.create(),
-                TaskListItemsExtension.create()
+                TaskListItemsExtension.create(),
+                AutolinkExtension.create()
         );
         parser = Parser.builder().extensions(extensions).build();
         renderer = HtmlRenderer.builder().extensions(extensions).build();
@@ -120,6 +123,14 @@ public class PreviewPanel extends JPanel {
         htmlPane = new JEditorPane();
         htmlPane.setContentType("text/html");
         htmlPane.setEditable(false);
+        htmlPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
+                try {
+                    Desktop.getDesktop().browse(e.getURL().toURI());
+                } catch (Exception ignored) {
+                }
+            }
+        });
 
         JScrollPane scrollPane = new JScrollPane(htmlPane);
         add(scrollPane, BorderLayout.CENTER);
