@@ -1,5 +1,8 @@
 package com.marknotes.ui;
 
+import net.sourceforge.plantuml.SourceStringReader;
+import net.sourceforge.plantuml.FileFormatOption;
+import net.sourceforge.plantuml.FileFormat;
 import org.commonmark.Extension;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
@@ -11,7 +14,11 @@ import org.commonmark.renderer.html.HtmlRenderer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.Desktop;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PreviewPanel extends JPanel {
     private final JEditorPane htmlPane;
@@ -20,6 +27,12 @@ public class PreviewPanel extends JPanel {
     private boolean dark = false;
     private int fontSize = 12;
     private String lastMarkdown = "";
+
+    private static final Pattern PLANTUML_BLOCK_PATTERN = Pattern.compile(
+            "<pre><code class=\"language-plantuml\">(.*?)</code></pre>",
+            Pattern.DOTALL);
+
+    private final List<File> tempFiles = new ArrayList<>();
 
     private static final String LIGHT_CSS = """
             body {
@@ -158,8 +171,48 @@ public class PreviewPanel extends JPanel {
         }
         String css = String.format(dark ? DARK_CSS : LIGHT_CSS, fontSize);
         String html = renderer.render(parser.parse(markdown));
+        html = renderPlantUmlBlocks(html);
         String fullHtml = "<html><head><style>" + css + "</style></head><body>" + html + "</body></html>";
         htmlPane.setText(fullHtml);
         htmlPane.setCaretPosition(0);
+    }
+
+    private String renderPlantUmlBlocks(String html) {
+        for (File f : tempFiles) {
+            f.delete();
+        }
+        tempFiles.clear();
+        Matcher matcher = PLANTUML_BLOCK_PATTERN.matcher(html);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String umlSource = matcher.group(1);
+            umlSource = umlSource.replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&")
+                    .replace("&quot;", "\"");
+            String imgTag = renderPlantUmlToImg(umlSource);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(imgTag));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private String renderPlantUmlToImg(String source) {
+        try {
+            SourceStringReader reader = new SourceStringReader(source);
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            reader.outputImage(os, new FileFormatOption(FileFormat.PNG));
+            os.close();
+            File tmpFile = File.createTempFile("plantuml_", ".png");
+            tmpFile.deleteOnExit();
+            tempFiles.add(tmpFile);
+            try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+                fos.write(os.toByteArray());
+            }
+            return "<p><img src=\"" + tmpFile.toURI().toString() + "\"></p>";
+        } catch (Exception e) {
+            return "<pre><code>" + source + "</code></pre><p style=\"color:red;\">PlantUML rendering error: "
+                    + e.getMessage() + "</p>";
+        }
     }
 }

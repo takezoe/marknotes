@@ -54,6 +54,11 @@
             <artifactId>flatlaf</artifactId>
             <version>3.4</version>
         </dependency>
+        <dependency>
+            <groupId>net.sourceforge.plantuml</groupId>
+            <artifactId>plantuml</artifactId>
+            <version>1.2026.7</version>
+        </dependency>
     </dependencies>
 
     <build>
