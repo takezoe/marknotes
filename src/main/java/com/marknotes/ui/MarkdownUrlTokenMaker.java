@@ -14,7 +14,7 @@ public class MarkdownUrlTokenMaker extends MarkdownTokenMaker {
     public static final int URL_TOKEN_TYPE = TokenTypes.LITERAL_STRING_DOUBLE_QUOTE;
 
     private static final Pattern URL_PATTERN = Pattern.compile(
-            "(https?://|ftp://|www\\.)[^\\s<>]*[^\\s<>.,;:!?\"'\\)\\]}>]"
+            "(https?://|ftp://|www\\.)[A-Za-z0-9\\-._~:/?#\\[\\]@!$&'()*+,;=%]*[A-Za-z0-9/\\-_~)\\]=%#]"
     );
 
     @Override
