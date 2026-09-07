@@ -33,6 +33,16 @@ public class NoteListPanel extends JPanel {
     public enum SortMode { TITLE, LAST_MODIFIED }
     private SortMode sortMode = SortMode.TITLE;
 
+    public enum ListMode { GROUPED, FLAT }
+    private ListMode listMode = ListMode.GROUPED;
+
+    public ListMode getListMode() { return listMode; }
+
+    public void setListMode(ListMode mode) {
+        this.listMode = mode;
+        refreshNotes();
+    }
+
     public SortMode getSortMode() { return sortMode; }
 
     public void setSortMode(SortMode mode) {
@@ -152,6 +162,7 @@ public class NoteListPanel extends JPanel {
 
     private void buildTree(List<Note> notes) {
         rootNode.removeAllChildren();
+        cellRenderer.setListMode(listMode);
 
         java.util.Comparator<Note> comparator = sortMode == SortMode.LAST_MODIFIED
                 ? java.util.Comparator.comparing(Note::getLastModified, java.util.Comparator.reverseOrder())
@@ -159,27 +170,33 @@ public class NoteListPanel extends JPanel {
 
         List<Note> sorted = notes.stream().sorted(comparator).toList();
 
-        DefaultMutableTreeNode ungrouped = new DefaultMutableTreeNode("Ungrouped");
-        java.util.Map<String, DefaultMutableTreeNode> groupNodes = new java.util.TreeMap<>();
-
-        for (String group : storage.getGroups()) {
-            groupNodes.put(group, new DefaultMutableTreeNode(group));
-        }
-
-        for (Note note : sorted) {
-            String group = note.getGroup();
-            if (group == null || group.isEmpty()) {
-                ungrouped.add(new DefaultMutableTreeNode(note));
-            } else {
-                groupNodes.computeIfAbsent(group, g -> new DefaultMutableTreeNode(g))
-                        .add(new DefaultMutableTreeNode(note));
+        if (listMode == ListMode.FLAT) {
+            for (Note note : sorted) {
+                rootNode.add(new DefaultMutableTreeNode(note));
             }
-        }
+        } else {
+            DefaultMutableTreeNode ungrouped = new DefaultMutableTreeNode("Ungrouped");
+            java.util.Map<String, DefaultMutableTreeNode> groupNodes = new java.util.TreeMap<>();
 
-        rootNode.add(ungrouped);
+            for (String group : storage.getGroups()) {
+                groupNodes.put(group, new DefaultMutableTreeNode(group));
+            }
 
-        for (DefaultMutableTreeNode groupNode : groupNodes.values()) {
-            rootNode.add(groupNode);
+            for (Note note : sorted) {
+                String group = note.getGroup();
+                if (group == null || group.isEmpty()) {
+                    ungrouped.add(new DefaultMutableTreeNode(note));
+                } else {
+                    groupNodes.computeIfAbsent(group, g -> new DefaultMutableTreeNode(g))
+                            .add(new DefaultMutableTreeNode(note));
+                }
+            }
+
+            rootNode.add(ungrouped);
+
+            for (DefaultMutableTreeNode groupNode : groupNodes.values()) {
+                rootNode.add(groupNode);
+            }
         }
 
         treeModel.reload();
@@ -370,15 +387,44 @@ public class NoteListPanel extends JPanel {
 
         popup.add(sortMenu);
 
+        JMenu viewMenu = new JMenu("View");
+        ButtonGroup viewGroup = new ButtonGroup();
+
+        JRadioButtonMenuItem groupedView = new JRadioButtonMenuItem("Grouped");
+        groupedView.setSelected(listMode == ListMode.GROUPED);
+        groupedView.addActionListener(ev -> { listMode = ListMode.GROUPED; refreshNotes(); });
+        viewGroup.add(groupedView);
+        viewMenu.add(groupedView);
+
+        JRadioButtonMenuItem flatView = new JRadioButtonMenuItem("Flat List");
+        flatView.setSelected(listMode == ListMode.FLAT);
+        flatView.addActionListener(ev -> { listMode = ListMode.FLAT; refreshNotes(); });
+        viewGroup.add(flatView);
+        viewMenu.add(flatView);
+
+        popup.add(viewMenu);
+
         popup.show(noteTree, e.getX(), e.getY());
     }
 
     private static class NoteTreeCellRenderer extends DefaultTreeCellRenderer {
         private static final int SNIPPET_CONTEXT = 20;
         private String highlightQuery = "";
+        private ListMode listMode = ListMode.GROUPED;
 
         void setHighlightQuery(String query) {
             this.highlightQuery = query == null ? "" : query.trim().toLowerCase();
+        }
+
+        void setListMode(ListMode mode) {
+            this.listMode = mode;
+        }
+
+        private String groupPrefix(Note note) {
+            if (listMode != ListMode.FLAT) return "";
+            String group = note.getGroup();
+            if (group == null || group.isEmpty()) return "";
+            return "[" + group + "] ";
         }
 
         @Override
@@ -388,7 +434,13 @@ public class NoteListPanel extends JPanel {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
             if (node.getUserObject() instanceof Note note) {
                 if (highlightQuery.isEmpty()) {
-                    setText(note.getTitle());
+                    String prefix = groupPrefix(note);
+                    if (prefix.isEmpty()) {
+                        setText(note.getTitle());
+                    } else {
+                        setText("<html><span style='color:gray;'>" + escapeHtml(prefix) + "</span>"
+                                + escapeHtml(note.getTitle()) + "</html>");
+                    }
                 } else {
                     setText(buildHighlightedLabel(note));
                 }
@@ -400,21 +452,39 @@ public class NoteListPanel extends JPanel {
         }
 
         private String buildHighlightedLabel(Note note) {
+            String prefix = groupPrefix(note);
             String title = note.getTitle();
-            int titleIdx = title.toLowerCase().indexOf(highlightQuery);
+            String displayTitle = prefix + title;
+            int titleIdx = displayTitle.toLowerCase().indexOf(highlightQuery);
 
             if (titleIdx >= 0) {
-                return highlightText(title, titleIdx);
+                String highlighted = highlightText(displayTitle, titleIdx);
+                if (!prefix.isEmpty()) {
+                    String inner = highlighted.substring("<html>".length(), highlighted.length() - "</html>".length());
+                    String escapedPrefix = escapeHtml(prefix);
+                    if (inner.startsWith(escapedPrefix)) {
+                        return "<html><span style='color:gray;'>" + escapedPrefix + "</span>"
+                                + inner.substring(escapedPrefix.length()) + "</html>";
+                    }
+                }
+                return highlighted;
             }
 
             String content = note.getContent();
             int contentIdx = content.toLowerCase().indexOf(highlightQuery);
             if (contentIdx >= 0) {
                 String snippet = buildSnippet(content, contentIdx);
-                return "<html>" + escapeHtml(title)
+                String titleHtml = prefix.isEmpty()
+                        ? escapeHtml(title)
+                        : "<span style='color:gray;'>" + escapeHtml(prefix) + "</span>" + escapeHtml(title);
+                return "<html>" + titleHtml
                         + "<br><span style='color:gray;'>" + snippet + "</span></html>";
             }
 
+            if (!prefix.isEmpty()) {
+                return "<html><span style='color:gray;'>" + escapeHtml(prefix) + "</span>"
+                        + escapeHtml(title) + "</html>";
+            }
             return title;
         }
 

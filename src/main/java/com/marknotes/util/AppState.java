@@ -103,4 +103,12 @@ public class AppState {
     public void setFontSize(int size) {
         properties.setProperty("fontSize", String.valueOf(size));
     }
+
+    public String getListMode() {
+        return properties.getProperty("listMode", "GROUPED");
+    }
+
+    public void setListMode(String listMode) {
+        properties.setProperty("listMode", listMode);
+    }
 }
