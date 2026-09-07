@@ -84,6 +84,7 @@ public class MainFrame extends JFrame {
         appState.setOpenTabs(editorPanel.getOpenTabPaths());
         appState.setViewMode(editorPanel.getCurrentViewMode().name());
         appState.setSortMode(noteListPanel.getSortMode().name());
+        appState.setListMode(noteListPanel.getListMode().name());
         appState.setWindowBounds(getX(), getY(), getWidth(), getHeight());
         appState.save();
     }
@@ -123,6 +124,12 @@ public class MainFrame extends JFrame {
 
         try {
             noteListPanel.setSortMode(NoteListPanel.SortMode.valueOf(appState.getSortMode()));
+        } catch (IllegalArgumentException e) {
+            // ignore invalid value
+        }
+
+        try {
+            noteListPanel.setListMode(NoteListPanel.ListMode.valueOf(appState.getListMode()));
         } catch (IllegalArgumentException e) {
             // ignore invalid value
         }
