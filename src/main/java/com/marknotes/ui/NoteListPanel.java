@@ -424,7 +424,7 @@ public class NoteListPanel extends JPanel {
             if (listMode != ListMode.FLAT) return "";
             String group = note.getGroup();
             if (group == null || group.isEmpty()) return "";
-            return "[" + group + "] ";
+            return group + "/";
         }
 
         @Override
