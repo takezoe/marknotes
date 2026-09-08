@@ -49,6 +49,7 @@ public class MainFrame extends JFrame {
         noteListPanel.setOnNoteDeleted(editorPanel::closeNoteTab);
         noteListPanel.setOnNoteRenamed(editorPanel::renameNote);
         noteListPanel.setOnNoteMoved(editorPanel::handleNoteMove);
+        editorPanel.setOnNoteSaved(noteListPanel::rebuildTree);
         noteListPanel.setOnBeforeGroupRename(group -> editorPanel.saveNotesInGroup(group, storage.getNotesDir()));
         noteListPanel.setOnGroupRenamed((oldGroup, newGroup) -> editorPanel.groupRenamed(oldGroup, newGroup, storage.getNotesDir()));
 

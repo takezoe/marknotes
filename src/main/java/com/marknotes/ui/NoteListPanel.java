@@ -9,6 +9,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
+import java.io.File;
 import java.awt.dnd.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -157,7 +158,38 @@ public class NoteListPanel extends JPanel {
 
     public void refreshNotes() {
         allNotes = storage.loadAllNotes();
+        rebuildTree();
+    }
+
+    public void rebuildTree() {
+        File selectedFile = null;
+        TreePath selPath = noteTree.getSelectionPath();
+        if (selPath != null) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) selPath.getLastPathComponent();
+            if (node.getUserObject() instanceof Note note) {
+                selectedFile = note.getFile();
+            }
+        }
+
         buildTree(allNotes);
+
+        if (selectedFile != null) {
+            selectNoteByFile(selectedFile);
+        }
+    }
+
+    private void selectNoteByFile(File file) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+        java.util.Enumeration<?> e = root.depthFirstEnumeration();
+        while (e.hasMoreElements()) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) e.nextElement();
+            if (node.getUserObject() instanceof Note note && note.getFile().equals(file)) {
+                TreePath path = new TreePath(node.getPath());
+                noteTree.setSelectionPath(path);
+                noteTree.scrollPathToVisible(path);
+                return;
+            }
+        }
     }
 
     private void buildTree(List<Note> notes) {
@@ -403,6 +435,11 @@ public class NoteListPanel extends JPanel {
         viewMenu.add(flatView);
 
         popup.add(viewMenu);
+
+        popup.addSeparator();
+        JMenuItem refreshItem = new JMenuItem("Refresh");
+        refreshItem.addActionListener(ev -> refreshNotes());
+        popup.add(refreshItem);
 
         popup.show(noteTree, e.getX(), e.getY());
     }

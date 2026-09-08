@@ -24,6 +24,7 @@ public class EditorPanel extends JPanel {
     private int fontSize = 12;
     private boolean lineWrap = true;
     private int dragSourceIndex = -1;
+    private Runnable onNoteSaved;
 
     public EditorPanel(NoteStorage storage) {
         this.storage = storage;
@@ -103,6 +104,10 @@ public class EditorPanel extends JPanel {
         });
 
         showCard("tabs");
+    }
+
+    public void setOnNoteSaved(Runnable onNoteSaved) {
+        this.onNoteSaved = onNoteSaved;
     }
 
     public void saveCurrentNote() {
@@ -333,6 +338,7 @@ public class EditorPanel extends JPanel {
         storage.saveNote(tabInfo.note);
         tabInfo.modified = false;
         updateTabTitle(tabInfo);
+        if (onNoteSaved != null) onNoteSaved.run();
     }
 
     private void closeTab(TabInfo tabInfo) {
