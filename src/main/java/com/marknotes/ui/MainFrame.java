@@ -230,7 +230,7 @@ public class MainFrame extends JFrame {
         viewMenu.add(cycleItem);
         viewMenu.addSeparator();
         JCheckBoxMenuItem lineWrapItem = new JCheckBoxMenuItem("Line Wrap");
-        lineWrapItem.setSelected(editorPanel.getLineWrap());
+        lineWrapItem.setSelected(appState.getLineWrap());
         lineWrapItem.addActionListener(e -> {
             boolean wrap = lineWrapItem.isSelected();
             editorPanel.setLineWrap(wrap);
