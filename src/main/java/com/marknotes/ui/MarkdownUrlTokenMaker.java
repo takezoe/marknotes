@@ -30,26 +30,36 @@ public class MarkdownUrlTokenMaker extends MarkdownTokenMaker {
 
         while (current != null && current.getType() != TokenTypes.NULL) {
             if (current.getType() == TokenTypes.IDENTIFIER) {
-                String lexeme = current.getLexeme();
-                if (lexeme != null) {
-                    Matcher matcher = URL_PATTERN.matcher(lexeme);
-                    if (matcher.find()) {
-                        Token replacement = splitToken((TokenImpl) current, lexeme, matcher);
-                        if (replacement != null) {
-                            if (prev == null) {
-                                head = replacement;
-                            } else {
-                                ((TokenImpl) prev).setNextToken(replacement);
-                            }
-                            // advance to end of replacement chain
-                            Token last = replacement;
-                            while (last.getNextToken() != null && last.getNextToken() != current.getNextToken()) {
-                                last = last.getNextToken();
-                            }
-                            prev = last;
-                            current = last.getNextToken();
-                            continue;
+                StringBuilder sb = new StringBuilder();
+                Token lastMerged = current;
+                for (Token t = current; t != null && t.getType() != TokenTypes.NULL; t = t.getNextToken()) {
+                    if (t.getType() == TokenTypes.IDENTIFIER ||
+                        (t.getType() == TokenTypes.OPERATOR && "~".equals(t.getLexeme()))) {
+                        sb.append(t.getLexeme());
+                        lastMerged = t;
+                    } else {
+                        break;
+                    }
+                }
+
+                String lexeme = sb.toString();
+                Matcher matcher = URL_PATTERN.matcher(lexeme);
+                if (matcher.find()) {
+                    Token afterChain = lastMerged.getNextToken();
+                    Token replacement = splitToken((TokenImpl) current, lexeme, matcher, afterChain);
+                    if (replacement != null) {
+                        if (prev == null) {
+                            head = replacement;
+                        } else {
+                            ((TokenImpl) prev).setNextToken(replacement);
                         }
+                        Token last = replacement;
+                        while (last.getNextToken() != null && last.getNextToken() != afterChain) {
+                            last = last.getNextToken();
+                        }
+                        prev = last;
+                        current = last.getNextToken();
+                        continue;
                     }
                 }
             }
@@ -60,7 +70,7 @@ public class MarkdownUrlTokenMaker extends MarkdownTokenMaker {
         return head;
     }
 
-    private Token splitToken(TokenImpl original, String lexeme, Matcher matcher) {
+    private Token splitToken(TokenImpl original, String lexeme, Matcher matcher, Token nextToken) {
         int urlStart = matcher.start();
         int urlEnd = matcher.end();
 
@@ -97,7 +107,7 @@ public class MarkdownUrlTokenMaker extends MarkdownTokenMaker {
             tail = after;
         }
 
-        ((TokenImpl) tail).setNextToken(original.getNextToken());
+        ((TokenImpl) tail).setNextToken(nextToken);
         return head;
     }
 }
