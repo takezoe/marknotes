@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class NoteListPanel extends JPanel {
+    public static final DataFlavor NOTE_DATA_FLAVOR = new DataFlavor(Note.class, "Note");
+
     private final NoteStorage storage;
     private final JTree noteTree;
     private final DefaultMutableTreeNode rootNode;
@@ -555,11 +557,9 @@ public class NoteListPanel extends JPanel {
     }
 
     private class NoteTransferHandler extends TransferHandler {
-        private final DataFlavor noteFlavor = new DataFlavor(Note.class, "Note");
-
         @Override
         public int getSourceActions(JComponent c) {
-            return MOVE;
+            return COPY_OR_MOVE;
         }
 
         @Override
@@ -571,9 +571,9 @@ public class NoteListPanel extends JPanel {
             if (node.getUserObject() instanceof Note note) {
                 return new Transferable() {
                     @Override
-                    public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{noteFlavor}; }
+                    public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{NOTE_DATA_FLAVOR}; }
                     @Override
-                    public boolean isDataFlavorSupported(DataFlavor flavor) { return noteFlavor.equals(flavor); }
+                    public boolean isDataFlavorSupported(DataFlavor flavor) { return NOTE_DATA_FLAVOR.equals(flavor); }
                     @Override
                     public Object getTransferData(DataFlavor flavor) { return note; }
                 };
@@ -583,19 +583,23 @@ public class NoteListPanel extends JPanel {
 
         @Override
         public boolean canImport(TransferSupport support) {
-            if (!support.isDrop() || !support.isDataFlavorSupported(noteFlavor)) return false;
+            if (!support.isDrop() || !support.isDataFlavorSupported(NOTE_DATA_FLAVOR)) return false;
             JTree.DropLocation dropLocation = (JTree.DropLocation) support.getDropLocation();
             TreePath path = dropLocation.getPath();
             if (path == null) return false;
             DefaultMutableTreeNode target = (DefaultMutableTreeNode) path.getLastPathComponent();
-            return target.getUserObject() instanceof String && !target.isRoot();
+            if (target.getUserObject() instanceof String && !target.isRoot()) {
+                support.setDropAction(MOVE);
+                return true;
+            }
+            return false;
         }
 
         @Override
         public boolean importData(TransferSupport support) {
             if (!canImport(support)) return false;
             try {
-                Note note = (Note) support.getTransferable().getTransferData(noteFlavor);
+                Note note = (Note) support.getTransferable().getTransferData(NOTE_DATA_FLAVOR);
                 JTree.DropLocation dropLocation = (JTree.DropLocation) support.getDropLocation();
                 DefaultMutableTreeNode target = (DefaultMutableTreeNode) dropLocation.getPath().getLastPathComponent();
                 String targetGroup = (String) target.getUserObject();

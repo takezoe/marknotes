@@ -10,8 +10,8 @@ import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.Desktop;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class PreviewPanel extends JPanel {
     private final JEditorPane htmlPane;
@@ -20,6 +20,7 @@ public class PreviewPanel extends JPanel {
     private boolean dark = false;
     private int fontSize = 12;
     private String lastMarkdown = "";
+    private final Consumer<String> hyperlinkHandler;
 
     private static final String LIGHT_CSS = """
             body {
@@ -108,7 +109,8 @@ public class PreviewPanel extends JPanel {
             li { margin: 4px 0; }
             """;
 
-    public PreviewPanel() {
+    public PreviewPanel(Consumer<String> hyperlinkHandler) {
+        this.hyperlinkHandler = hyperlinkHandler;
         setLayout(new BorderLayout());
 
         List<Extension> extensions = List.of(
@@ -125,10 +127,7 @@ public class PreviewPanel extends JPanel {
         htmlPane.setEditable(false);
         htmlPane.addHyperlinkListener(e -> {
             if (e.getEventType() == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED) {
-                try {
-                    Desktop.getDesktop().browse(e.getURL().toURI());
-                } catch (Exception ignored) {
-                }
+                hyperlinkHandler.accept(e.getDescription());
             }
         });
 

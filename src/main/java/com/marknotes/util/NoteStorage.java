@@ -73,6 +73,38 @@ public class NoteStorage {
         }
     }
 
+    public Note resolveLinkedNote(Note sourceNote, String linkTarget) {
+        String target = linkTarget.trim();
+        int fragmentStart = target.indexOf('#');
+        int queryStart = target.indexOf('?');
+        int suffixStart = fragmentStart >= 0 && queryStart >= 0
+                ? Math.min(fragmentStart, queryStart)
+                : Math.max(fragmentStart, queryStart);
+        if (suffixStart >= 0) {
+            target = target.substring(0, suffixStart);
+        }
+        if (target.isEmpty()) {
+            return null;
+        }
+
+        Path linkPath;
+        try {
+            linkPath = Path.of(target);
+        } catch (InvalidPathException e) {
+            return null;
+        }
+        if (linkPath.isAbsolute()) {
+            return null;
+        }
+
+        Path sourceDir = sourceNote.getFile().toPath().toAbsolutePath().normalize().getParent();
+        Note linkedNote = loadLinkedNote(sourceDir.resolve(linkPath));
+        if (linkedNote != null) {
+            return linkedNote;
+        }
+        return loadLinkedNote(notesDir.resolve(linkPath));
+    }
+
     public void saveNote(Note note) {
         try {
             Path filePath = note.getFile().toPath();
@@ -211,6 +243,17 @@ public class NoteStorage {
 
     public Path getNotesDir() {
         return notesDir;
+    }
+
+    private Note loadLinkedNote(Path path) {
+        Path normalizedNotesDir = notesDir.toAbsolutePath().normalize();
+        Path normalizedPath = path.toAbsolutePath().normalize();
+        if (!normalizedPath.startsWith(normalizedNotesDir)
+                || !Files.isRegularFile(normalizedPath)
+                || !normalizedPath.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".md")) {
+            return null;
+        }
+        return loadNote(normalizedPath.toFile());
     }
 
     private String extractTitle(String raw) {
