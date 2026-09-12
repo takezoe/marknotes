@@ -107,7 +107,7 @@ public class NoteListPanel extends JPanel {
         noteTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 1) {
+                if (e.getClickCount() == 1 && SwingUtilities.isLeftMouseButton(e)) {
                     TreePath path = noteTree.getPathForLocation(e.getX(), e.getY());
                     if (path != null) {
                         DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
