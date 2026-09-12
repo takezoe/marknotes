@@ -9,11 +9,20 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetAdapter;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EditorPanel extends JPanel {
     private final NoteStorage storage;
@@ -44,17 +53,15 @@ public class EditorPanel extends JPanel {
     }
 
     public void openNote(Note note) {
-        String notePath = note.getFile().toPath().toAbsolutePath().normalize().toString();
         for (int i = 0; i < tabs.size(); i++) {
-            String tabPath = tabs.get(i).note.getFile().toPath().toAbsolutePath().normalize().toString();
-            if (tabPath.equals(notePath)) {
+            if (sameNoteFile(tabs.get(i).note, note)) {
                 tabbedPane.setSelectedIndex(i);
                 showCard("tabs");
                 return;
             }
         }
 
-        RSyntaxTextArea textArea = createTextArea();
+        RSyntaxTextArea textArea = createTextArea(note);
         textArea.setText(note.getContent());
         textArea.setCaretPosition(0);
         textArea.discardAllEdits();
@@ -65,7 +72,7 @@ public class EditorPanel extends JPanel {
         FindReplaceBar findReplaceBar = new FindReplaceBar(textArea);
         findReplaceBar.setVisible(false);
 
-        PreviewPanel previewPanel = new PreviewPanel();
+        PreviewPanel previewPanel = new PreviewPanel(target -> followLink(note, target));
         previewPanel.setDark(darkTheme);
         previewPanel.setFontSize(fontSize - 2);
 
@@ -104,6 +111,19 @@ public class EditorPanel extends JPanel {
         });
 
         showCard("tabs");
+    }
+
+    private boolean sameNoteFile(Note first, Note second) {
+        java.nio.file.Path firstPath = first.getFile().toPath().toAbsolutePath().normalize();
+        java.nio.file.Path secondPath = second.getFile().toPath().toAbsolutePath().normalize();
+        if (firstPath.equals(secondPath)) {
+            return true;
+        }
+        try {
+            return java.nio.file.Files.isSameFile(firstPath, secondPath);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     public void setOnNoteSaved(Runnable onNoteSaved) {
@@ -385,7 +405,7 @@ public class EditorPanel extends JPanel {
         atmf.putMapping(MARKDOWN_URL_SYNTAX, MarkdownUrlTokenMaker.class.getName());
     }
 
-    private RSyntaxTextArea createTextArea() {
+    private RSyntaxTextArea createTextArea(Note note) {
         RSyntaxTextArea textArea = new RSyntaxTextArea();
         textArea.setSyntaxEditingStyle(MARKDOWN_URL_SYNTAX);
         textArea.setCodeFoldingEnabled(true);
@@ -443,7 +463,14 @@ public class EditorPanel extends JPanel {
         applyEditorFont(textArea);
 
         textArea.setHyperlinksEnabled(true);
-        textArea.setLinkGenerator(new UrlLinkGenerator());
+        textArea.setLinkGenerator(new UrlLinkGenerator(note));
+        textArea.setDropMode(DropMode.INSERT);
+        textArea.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.DISPLAYABILITY_CHANGED) != 0
+                    && textArea.isDisplayable()) {
+                new DropTarget(textArea, DnDConstants.ACTION_COPY, new NoteLinkDropTarget(textArea), true);
+            }
+        });
 
         return textArea;
     }
@@ -484,31 +511,145 @@ public class EditorPanel extends JPanel {
         scheme.setStyle(MarkdownUrlTokenMaker.URL_TOKEN_TYPE, urlStyle);
     }
 
-    private static class UrlLinkGenerator implements LinkGenerator {
+    private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile(
+            "(?<!\\\\)\\[[^\\]]*\\]\\(([^\\s)]+)(?:\\s+(?:\"[^\"]*\"|'[^']*'))?\\)"
+    );
+
+    private class UrlLinkGenerator implements LinkGenerator {
+        private final Note sourceNote;
+
+        UrlLinkGenerator(Note sourceNote) {
+            this.sourceNote = sourceNote;
+        }
+
         @Override
         public LinkGeneratorResult isLinkAtOffset(RSyntaxTextArea textArea, int offs) {
+            try {
+                String text = textArea.getDocument().getText(0, textArea.getDocument().getLength());
+                Matcher matcher = MARKDOWN_LINK_PATTERN.matcher(text);
+                while (matcher.find()) {
+                    if (offs >= matcher.start(1) && offs < matcher.end(1)) {
+                        return createLinkResult(matcher.start(1), matcher.group(1));
+                    }
+                }
+            } catch (javax.swing.text.BadLocationException e) {
+                return null;
+            }
+
             Token token = textArea.modelToToken(offs);
             if (token != null && token.getType() == MarkdownUrlTokenMaker.URL_TOKEN_TYPE) {
-                String url = token.getLexeme();
-                int startOffset = token.getOffset();
-                return new LinkGeneratorResult() {
-                    @Override
-                    public javax.swing.event.HyperlinkEvent execute() {
-                        String resolved = url.startsWith("www.") ? "https://" + url : url;
-                        try {
-                            Desktop.getDesktop().browse(java.net.URI.create(resolved));
-                        } catch (Exception ignored) {
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    public int getSourceOffset() {
-                        return startOffset;
-                    }
-                };
+                return createLinkResult(token.getOffset(), token.getLexeme());
             }
             return null;
+        }
+
+        private LinkGeneratorResult createLinkResult(int startOffset, String target) {
+            return new LinkGeneratorResult() {
+                @Override
+                public javax.swing.event.HyperlinkEvent execute() {
+                    followLink(sourceNote, target);
+                    return null;
+                }
+
+                @Override
+                public int getSourceOffset() {
+                    return startOffset;
+                }
+            };
+        }
+    }
+
+    private void followLink(Note sourceNote, String target) {
+        Note linkedNote = storage.resolveLinkedNote(sourceNote, target);
+        if (linkedNote != null) {
+            openNote(linkedNote);
+            return;
+        }
+
+        String externalTarget = target.startsWith("www.") ? "https://" + target : target;
+        URI uri;
+        try {
+            uri = URI.create(externalTarget);
+        } catch (IllegalArgumentException e) {
+            showLinkError("Invalid link: " + target);
+            return;
+        }
+        if (!uri.isAbsolute()) {
+            showLinkError("Linked note was not found: " + target);
+            return;
+        }
+
+        try {
+            if (!Desktop.isDesktopSupported()) {
+                showLinkError("Opening external links is not supported on this system.");
+                return;
+            }
+            Desktop.getDesktop().browse(uri);
+        } catch (IOException | SecurityException | UnsupportedOperationException e) {
+            showLinkError("Could not open link: " + target);
+        }
+    }
+
+    private void showLinkError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Link Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static class NoteLinkDropTarget extends DropTargetAdapter {
+        private final RSyntaxTextArea textArea;
+
+        NoteLinkDropTarget(RSyntaxTextArea textArea) {
+            this.textArea = textArea;
+        }
+
+        @Override
+        public void dragEnter(DropTargetDragEvent event) {
+            updateDragAcceptance(event);
+        }
+
+        @Override
+        public void dragOver(DropTargetDragEvent event) {
+            updateDragAcceptance(event);
+        }
+
+        @Override
+        public void drop(DropTargetDropEvent event) {
+            if (!event.isDataFlavorSupported(NoteListPanel.NOTE_DATA_FLAVOR)) {
+                event.rejectDrop();
+                return;
+            }
+
+            event.acceptDrop(DnDConstants.ACTION_COPY);
+            try {
+                Note note = (Note) event.getTransferable().getTransferData(NoteListPanel.NOTE_DATA_FLAVOR);
+                Point location = event.getLocation();
+                SwingUtilities.invokeLater(() -> insertNoteLink(note, textArea,
+                        textArea.viewToModel2D(location)));
+                event.dropComplete(true);
+            } catch (UnsupportedFlavorException | IOException e) {
+                event.dropComplete(false);
+            }
+        }
+
+        private void updateDragAcceptance(DropTargetDragEvent event) {
+            if (event.isDataFlavorSupported(NoteListPanel.NOTE_DATA_FLAVOR)) {
+                event.acceptDrag(DnDConstants.ACTION_COPY);
+            } else {
+                event.rejectDrag();
+            }
+        }
+    }
+
+    private static void insertNoteLink(Note note, RSyntaxTextArea textArea, int insertionOffset) {
+        String group = note.getGroup();
+        String target = (group == null || group.isEmpty() ? "" : group + "/") + note.getFile().getName();
+        String title = note.getTitle().replace("\\", "\\\\")
+                .replace("[", "\\[").replace("]", "\\]");
+        String link = "[" + title + "](" + target + ")";
+        try {
+            textArea.getDocument().insertString(insertionOffset, link, null);
+            textArea.setCaretPosition(insertionOffset + link.length());
+        } catch (javax.swing.text.BadLocationException e) {
+            throw new IllegalStateException("Could not insert note link", e);
         }
     }
 
