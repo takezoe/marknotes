@@ -144,6 +144,16 @@ public class EditorPanel extends JPanel {
         }
     }
 
+    public void closeAllTabs() {
+        if (!confirmCloseAll()) {
+            return;
+        }
+
+        tabs.clear();
+        tabbedPane.removeAll();
+        showCard("placeholder");
+    }
+
     public List<String> getOpenTabPaths() {
         return tabs.stream()
                 .map(t -> t.note.getFile().getAbsolutePath())
