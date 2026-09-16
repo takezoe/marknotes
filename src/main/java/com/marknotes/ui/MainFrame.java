@@ -163,6 +163,9 @@ public class MainFrame extends JFrame {
         closeTabItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_W, shortcutMask));
         closeTabItem.addActionListener(e -> editorPanel.closeCurrentTab());
 
+        JMenuItem closeAllTabsItem = new JMenuItem("Close All Tabs");
+        closeAllTabsItem.addActionListener(e -> editorPanel.closeAllTabs());
+
         JMenuItem newNoteItem = new JMenuItem("New Note");
         newNoteItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, shortcutMask));
         newNoteItem.addActionListener(e -> noteListPanel.createNewNote());
@@ -170,6 +173,7 @@ public class MainFrame extends JFrame {
         fileMenu.add(newNoteItem);
         fileMenu.add(saveItem);
         fileMenu.add(closeTabItem);
+        fileMenu.add(closeAllTabsItem);
         fileMenu.add(refreshItem);
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
