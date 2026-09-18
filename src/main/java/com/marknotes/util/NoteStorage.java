@@ -124,20 +124,19 @@ public class NoteStorage {
     }
 
     public Note createNote(String title, String group) {
-        String fileName = sanitizeFileName(title) + ".md";
         Path dir = group.isEmpty() ? notesDir : notesDir.resolve(group);
         try {
             Files.createDirectories(dir);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        File file = dir.resolve(fileName).toFile();
 
-        int counter = 1;
-        while (file.exists()) {
-            file = dir.resolve(sanitizeFileName(title) + "_" + counter + ".md").toFile();
-            counter++;
-        }
+        // The title can be changed later while the file name cannot, so the file name
+        // is a generated id instead of being derived from the title.
+        File file;
+        do {
+            file = dir.resolve(UUID.randomUUID() + ".md").toFile();
+        } while (file.exists());
 
         Note note = new Note(title, "", file, group);
         saveNote(note);
@@ -292,9 +291,5 @@ public class NoteStorage {
             return relative.getParent().toString();
         }
         return "";
-    }
-
-    private String sanitizeFileName(String name) {
-        return name.replaceAll("[^a-zA-Z0-9\\-_ ]", "").replaceAll("\\s+", "_").toLowerCase();
     }
 }
