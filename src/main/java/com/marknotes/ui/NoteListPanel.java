@@ -258,18 +258,12 @@ public class NoteListPanel extends JPanel {
     }
 
     public void createNewNote() {
-        String title = JOptionPane.showInputDialog(this, "Note title:", "New Note", JOptionPane.PLAIN_MESSAGE);
-        if (title == null || title.trim().isEmpty()) return;
+        createNewNoteInGroup("");
+    }
 
-        String[] groups = getGroupOptions();
-        String group = "";
-        if (groups.length > 0) {
-            Object selected = JOptionPane.showInputDialog(this, "Select group:",
-                    "Group", JOptionPane.PLAIN_MESSAGE, null, appendNone(groups), "(None)");
-            if (selected != null && !"(None)".equals(selected)) {
-                group = selected.toString();
-            }
-        }
+    private void createNewNoteInGroup(String group) {
+        String title = promptNoteTitle();
+        if (title == null || title.trim().isEmpty()) return;
 
         Note note = storage.createNote(title.trim(), group);
         refreshNotes();
@@ -278,15 +272,23 @@ public class NoteListPanel extends JPanel {
         }
     }
 
-    private void createNewNoteInGroup(String group) {
-        String title = JOptionPane.showInputDialog(this, "Note title:", "New Note", JOptionPane.PLAIN_MESSAGE);
-        if (title == null || title.trim().isEmpty()) return;
+    private String promptNoteTitle() {
+        JTextField titleField = new JTextField("Untitled", 20);
+        JOptionPane pane = new JOptionPane(new Object[]{"Note title:", titleField},
+                JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION) {
+            @Override
+            public void selectInitialValue() {
+                titleField.requestFocusInWindow();
+                titleField.selectAll();
+            }
+        };
 
-        Note note = storage.createNote(title.trim(), group);
-        refreshNotes();
-        if (onNoteSelected != null) {
-            onNoteSelected.accept(note, "");
-        }
+        JDialog dialog = pane.createDialog(this, "New Note");
+        dialog.setVisible(true);
+        dialog.dispose();
+
+        if (!(pane.getValue() instanceof Integer option) || option != JOptionPane.OK_OPTION) return null;
+        return titleField.getText();
     }
 
     private void createNewGroup() {
@@ -327,17 +329,6 @@ public class NoteListPanel extends JPanel {
             storage.deleteGroup(groupName);
             refreshNotes();
         }
-    }
-
-    private String[] getGroupOptions() {
-        return storage.getGroups().toArray(new String[0]);
-    }
-
-    private Object[] appendNone(String[] groups) {
-        Object[] result = new Object[groups.length + 1];
-        result[0] = "(None)";
-        System.arraycopy(groups, 0, result, 1, groups.length);
-        return result;
     }
 
     private void showPopup(MouseEvent e) {
