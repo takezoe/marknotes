@@ -184,7 +184,7 @@ public class MainFrame extends JFrame {
         findItem.addActionListener(e -> editorPanel.showFind());
 
         JMenuItem replaceItem = new JMenuItem("Replace");
-        replaceItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, shortcutMask));
+        replaceItem.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_R, shortcutMask));
         replaceItem.addActionListener(e -> editorPanel.showFindReplace());
 
         editMenu.add(findItem);
