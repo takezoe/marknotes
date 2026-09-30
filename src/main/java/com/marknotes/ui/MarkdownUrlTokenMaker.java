@@ -58,6 +58,7 @@ public class MarkdownUrlTokenMaker extends MarkdownTokenMaker {
                 Token lastMerged = current;
                 for (Token t = current; t != null && t.getType() != TokenTypes.NULL; t = t.getNextToken()) {
                     if (t.getType() == TokenTypes.IDENTIFIER ||
+                        t.getType() == TokenTypes.MARKUP_ENTITY_REFERENCE ||
                         (t.getType() == TokenTypes.OPERATOR && "~".equals(t.getLexeme()))) {
                         sb.append(t.getLexeme());
                         lastMerged = t;
