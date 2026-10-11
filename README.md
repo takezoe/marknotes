@@ -17,6 +17,9 @@ Notes are stored as plain Markdown files with YAML front matter, making them eas
 mvn package
 ```
 
+This creates a self-contained, executable JAR at
+`target/marknotes-1.0-SNAPSHOT.jar`; it includes all runtime dependencies.
+
 ## Run
 
 ```bash
