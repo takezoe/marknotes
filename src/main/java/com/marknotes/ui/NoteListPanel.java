@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.datatransfer.*;
 import java.io.File;
 import java.awt.dnd.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -122,6 +123,44 @@ public class NoteListPanel extends JPanel {
             public void mousePressed(MouseEvent e) { showPopup(e); }
             @Override
             public void mouseReleased(MouseEvent e) { showPopup(e); }
+        });
+
+        noteTree.getInputMap(JComponent.WHEN_FOCUSED)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "openSelectedNote");
+        noteTree.getActionMap().put("openSelectedNote", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                int[] rows = noteTree.getSelectionRows();
+                if (rows == null || rows.length == 0) return;
+                java.util.Arrays.sort(rows);
+
+                List<Note> notes = new java.util.ArrayList<>();
+                for (int row : rows) {
+                    TreePath p = noteTree.getPathForRow(row);
+                    if (p != null && ((DefaultMutableTreeNode) p.getLastPathComponent()).getUserObject() instanceof Note note) {
+                        notes.add(note);
+                    }
+                }
+
+                if (!notes.isEmpty()) {
+                    if (onNoteSelected != null) {
+                        String query = searchField.getText().trim();
+                        for (Note note : notes) {
+                            onNoteSelected.accept(note, query);
+                        }
+                    }
+                    return;
+                }
+
+                if (rows.length != 1) return;
+                TreePath path = noteTree.getPathForRow(rows[0]);
+                if (path == null) return;
+                if (noteTree.isExpanded(path)) {
+                    noteTree.collapsePath(path);
+                } else {
+                    noteTree.expandPath(path);
+                }
+            }
         });
 
         noteTree.setDragEnabled(true);
