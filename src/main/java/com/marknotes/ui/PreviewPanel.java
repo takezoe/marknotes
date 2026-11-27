@@ -5,12 +5,16 @@ import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.task.list.items.TaskListItemsExtension;
+import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
+import org.commonmark.ext.front.matter.YamlFrontMatterVisitor;
+import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class PreviewPanel extends JPanel {
@@ -58,6 +62,8 @@ public class PreviewPanel extends JPanel {
             table { border-collapse: collapse; width: 100%%; }
             th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
             th { background-color: #f5f5f5; font-weight: 600; }
+            table.front-matter { margin-bottom: 16px; }
+            table.front-matter th { width: 25%%; }
             img { max-width: 100%%; }
             a { color: #0366d6; }
             hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
@@ -102,6 +108,8 @@ public class PreviewPanel extends JPanel {
             table { border-collapse: collapse; width: 100%%; }
             th, td { border: 1px solid #555; padding: 8px 12px; text-align: left; }
             th { background-color: #3c3c3c; font-weight: 600; }
+            table.front-matter { margin-bottom: 16px; }
+            table.front-matter th { width: 25%%; }
             img { max-width: 100%%; }
             a { color: #6baaec; }
             hr { border: none; border-top: 1px solid #444; margin: 24px 0; }
@@ -117,7 +125,8 @@ public class PreviewPanel extends JPanel {
                 TablesExtension.create(),
                 StrikethroughExtension.create(),
                 TaskListItemsExtension.create(),
-                AutolinkExtension.create()
+                AutolinkExtension.create(),
+                YamlFrontMatterExtension.create()
         );
         parser = Parser.builder().extensions(extensions).build();
         renderer = HtmlRenderer.builder().extensions(extensions).build();
@@ -156,9 +165,31 @@ public class PreviewPanel extends JPanel {
             return;
         }
         String css = String.format(dark ? DARK_CSS : LIGHT_CSS, fontSize);
-        String html = renderer.render(parser.parse(markdown));
+        Node document = parser.parse(markdown);
+        String html = renderFrontMatter(document) + renderer.render(document);
         String fullHtml = "<html><head><style>" + css + "</style></head><body>" + html + "</body></html>";
         htmlPane.setText(fullHtml);
         htmlPane.setCaretPosition(0);
+    }
+
+    private static String renderFrontMatter(Node document) {
+        YamlFrontMatterVisitor visitor = new YamlFrontMatterVisitor();
+        document.accept(visitor);
+        Map<String, List<String>> data = visitor.getData();
+        if (data.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("<table class=\"front-matter\">");
+        for (Map.Entry<String, List<String>> entry : data.entrySet()) {
+            sb.append("<tr><th>").append(escapeHtml(entry.getKey())).append("</th><td>")
+                    .append(escapeHtml(String.join(", ", entry.getValue())))
+                    .append("</td></tr>");
+        }
+        sb.append("</table>");
+        return sb.toString();
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 }
