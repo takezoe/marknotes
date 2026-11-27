@@ -416,7 +416,32 @@ public class EditorPanel extends JPanel {
     }
 
     private RSyntaxTextArea createTextArea(Note note) {
-        RSyntaxTextArea textArea = new RSyntaxTextArea();
+        RSyntaxTextArea textArea = new RSyntaxTextArea() {
+            // A two-finger tap on a macOS trackpad may arrive as a right-button event
+            // without the popup-trigger flag, which RSyntaxTextArea requires to show its
+            // context menu. Mark the first right-button event of a gesture as the popup
+            // trigger and clear the flag on the rest so the menu is shown only once.
+            private boolean popupShown;
+
+            @Override
+            protected void processMouseEvent(MouseEvent e) {
+                int id = e.getID();
+                if (id == MouseEvent.MOUSE_PRESSED) {
+                    popupShown = false;
+                }
+                if ((id == MouseEvent.MOUSE_PRESSED || id == MouseEvent.MOUSE_RELEASED)
+                        && (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e))) {
+                    boolean trigger = !popupShown;
+                    popupShown = true;
+                    if (e.isPopupTrigger() != trigger) {
+                        e = new MouseEvent(e.getComponent(), id, e.getWhen(), e.getModifiersEx(),
+                                e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(),
+                                e.getClickCount(), trigger, e.getButton());
+                    }
+                }
+                super.processMouseEvent(e);
+            }
+        };
         textArea.setSyntaxEditingStyle(MARKDOWN_URL_SYNTAX);
         textArea.setCodeFoldingEnabled(true);
         textArea.setAntiAliasingEnabled(true);

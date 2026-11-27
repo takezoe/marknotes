@@ -119,10 +119,31 @@ public class NoteListPanel extends JPanel {
                 }
             }
 
+            // A two-finger tap on a macOS trackpad may arrive as a right-button event
+            // without the popup-trigger flag, so also accept the right button and
+            // show the menu only once per gesture.
+            private boolean popupShown;
+
             @Override
-            public void mousePressed(MouseEvent e) { showPopup(e); }
+            public void mousePressed(MouseEvent e) {
+                popupShown = false;
+                if (isPopupEvent(e)) {
+                    popupShown = true;
+                    showPopup(e);
+                }
+            }
+
             @Override
-            public void mouseReleased(MouseEvent e) { showPopup(e); }
+            public void mouseReleased(MouseEvent e) {
+                if (!popupShown && isPopupEvent(e)) {
+                    popupShown = true;
+                    showPopup(e);
+                }
+            }
+
+            private boolean isPopupEvent(MouseEvent e) {
+                return e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e);
+            }
         });
 
         noteTree.getInputMap(JComponent.WHEN_FOCUSED)
@@ -371,8 +392,6 @@ public class NoteListPanel extends JPanel {
     }
 
     private void showPopup(MouseEvent e) {
-        if (!e.isPopupTrigger()) return;
-
         TreePath path = noteTree.getPathForLocation(e.getX(), e.getY());
         JPopupMenu popup = new JPopupMenu();
 
